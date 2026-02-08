@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3bd532540c43f6c4e91d93a167fa8247, type: 3}
   m_Name: Level_1
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
-  levelNumber: 1
+  levelNumber: 0
   sceneName: Level_1
   maxScore: 10
   scoreDecayPerSecond: 0.5

@@ -126,7 +126,7 @@ public class LevelManager : MonoBehaviour
         if (nextIndex < SceneManager.sceneCountInBuildSettings)
             SceneManager.LoadScene(nextIndex);
         else
-            SceneManager.LoadScene("Bootstrap");
+            SceneManager.LoadScene("Main");
     }
 
     bool IsConnectionValid(NodeTile tile)
