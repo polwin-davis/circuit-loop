@@ -8,7 +8,5 @@ public class LevelData : ScriptableObject
 
     [Header("Scoring")]
     public int maxScore = 100;
-
-    [Tooltip("How fast score reduces per second")]
     public float scoreDecayPerSecond = 1f;
 }

@@ -20,9 +20,7 @@ public class LevelSelectManager : MonoBehaviour
         for (int i = 0; i < levelButtons.Length; i++)
         {
             int levelIndex = i + 1;
-
-            levelButtons[i].interactable =
-                levelIndex <= saveData.unlockedLevel;
+            levelButtons[i].interactable = levelIndex <= saveData.unlockedLevel;
 
             int index = i;
             levelButtons[i].onClick.AddListener(() =>

@@ -5,14 +5,14 @@ using UnityEngine.SceneManagement;
 public class LevelManager : MonoBehaviour
 {
     public static LevelManager Instance;
-    public LevelData levelData;
 
-    [Header("Tiles")]
-    public List<NodeTile> tiles = new List<NodeTile>();
+    public LevelData levelData;
+    public List<NodeTile> tiles = new();
 
     private bool levelCompleted;
+    public bool IsLevelCompleted => levelCompleted;
 
-    [Header("Celebration")]
+    [Header("Effects")]
     public ParticleSystem completionParticles;
     public AudioSource completionAudio;
 
@@ -21,12 +21,15 @@ public class LevelManager : MonoBehaviour
     public TMPro.TextMeshProUGUI levelText;
     public GameObject lockImage;
 
-    [Header("Timing")]
+    [Header("Audio")]
+    public AudioSource tileRotateAudio;
+
+    [Header("Delays")]
     public float celebrationDelay = 1f;
     public float unlockDelay = 1f;
     public float loadNextLevelDelay = 1f;
 
-    private void Awake()
+    void Awake()
     {
         if (Instance == null)
             Instance = this;
@@ -34,12 +37,13 @@ public class LevelManager : MonoBehaviour
             Destroy(gameObject);
     }
 
-    private void Start()
+    void Start()
     {
-        if (ScoreManager.Instance != null && levelData != null)
+        if (ScoreManager.Instance && levelData)
             ScoreManager.Instance.Init(levelData);
     }
 
+    // Called whenever a tile is rotated
     public void CheckLevel()
     {
         if (levelCompleted)
@@ -65,29 +69,38 @@ public class LevelManager : MonoBehaviour
         OnLevelCompleted();
     }
 
+    // Handles completion logic
     void OnLevelCompleted()
     {
-        // 🛑 Stop score + show final score
         ScoreManager.Instance?.StopScore();
         ScoreManager.Instance?.ShowScore();
 
         SaveBestScore();
 
-        int currentIndex = SceneManager.GetActiveScene().buildIndex;
-        int currentLevelNumber = currentIndex;
-        int nextLevelNumber = currentLevelNumber + 1;
-
         SaveData data = SaveSystem.Load();
-        if (nextLevelNumber > data.unlockedLevel)
-        {
-            data.unlockedLevel = nextLevelNumber;
-            SaveSystem.Save(data);
-        }
+        bool hasNext = HasNextLevel(out LevelData nextLevel);
 
         completionParticles?.Play();
         completionAudio?.Play();
 
-        ShowLevelUnlockUI(nextLevelNumber);
+        if (hasNext)
+        {
+            if (nextLevel.levelNumber > data.unlockedLevel)
+            {
+                data.unlockedLevel = nextLevel.levelNumber;
+                SaveSystem.Save(data);
+                ShowLevelUnlockUI(nextLevel.levelNumber);
+            }
+        }
+        else
+        {
+            if (!data.finalLevelCompleted)
+            {
+                data.finalLevelCompleted = true;
+                SaveSystem.Save(data);
+                ShowComingSoonUI();
+            }
+        }
 
         Invoke(nameof(RemoveLockIcon), celebrationDelay);
         Invoke(nameof(HideUnlockUI), celebrationDelay + unlockDelay);
@@ -95,6 +108,32 @@ public class LevelManager : MonoBehaviour
             celebrationDelay + unlockDelay + loadNextLevelDelay);
     }
 
+    // Determines if a next level exists
+    bool HasNextLevel(out LevelData nextLevel)
+    {
+        nextLevel = null;
+        int nextLevelNumber = levelData.levelNumber + 1;
+
+        foreach (LevelData level in Resources.LoadAll<LevelData>(""))
+        {
+            if (level.levelNumber == nextLevelNumber)
+            {
+                nextLevel = level;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void LoadNextLevel()
+    {
+        if (HasNextLevel(out LevelData nextLevel))
+            SceneManager.LoadScene(nextLevel.sceneName);
+        else
+            SceneManager.LoadScene("Main");
+    }
+
+    // Saves the best score for the current level
     void SaveBestScore()
     {
         SaveData data = SaveSystem.Load();
@@ -117,16 +156,6 @@ public class LevelManager : MonoBehaviour
         }
 
         SaveSystem.Save(data);
-    }
-
-    void LoadNextLevel()
-    {
-        int nextIndex = SceneManager.GetActiveScene().buildIndex + 1;
-
-        if (nextIndex < SceneManager.sceneCountInBuildSettings)
-            SceneManager.LoadScene(nextIndex);
-        else
-            SceneManager.LoadScene("Main");
     }
 
     bool IsConnectionValid(NodeTile tile)
@@ -173,22 +202,20 @@ public class LevelManager : MonoBehaviour
                     stack.Push(n);
             }
         }
-
         return visited.Count == tiles.Count;
     }
 
-    void ResetTileColors() { foreach (var t in tiles) t.SetInvalidColor(); }
-    void SetAllTilesValid() { foreach (var t in tiles) t.SetValidColor(); }
+    void ResetTileColors()
+    {
+        foreach (var t in tiles)
+            t.SetInvalidColor();
+    }
 
-    Direction GetOppositeDirection(Direction d) =>
-        d switch
-        {
-            Direction.Up => Direction.Down,
-            Direction.Down => Direction.Up,
-            Direction.Left => Direction.Right,
-            Direction.Right => Direction.Left,
-            _ => Direction.Up
-        };
+    void SetAllTilesValid()
+    {
+        foreach (var t in tiles)
+            t.SetValidColor();
+    }
 
     void ShowLevelUnlockUI(int level)
     {
@@ -197,6 +224,25 @@ public class LevelManager : MonoBehaviour
         lockImage.SetActive(true);
     }
 
+    void ShowComingSoonUI()
+    {
+        levelUnlockPanel.SetActive(true);
+        levelText.text = "COMING SOON";
+        lockImage.SetActive(false);
+    }
+
     void RemoveLockIcon() => lockImage.SetActive(false);
     void HideUnlockUI() => levelUnlockPanel.SetActive(false);
+
+    Direction GetOppositeDirection(Direction d)
+    {
+        return d switch
+        {
+            Direction.Up => Direction.Down,
+            Direction.Down => Direction.Up,
+            Direction.Left => Direction.Right,
+            Direction.Right => Direction.Left,
+            _ => Direction.Up
+        };
+    }
 }

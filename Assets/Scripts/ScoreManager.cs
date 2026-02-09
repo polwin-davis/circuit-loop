@@ -7,14 +7,13 @@ public class ScoreManager : MonoBehaviour
 
     public int currentScore { get; private set; }
 
-    private float decayRate;          // score lost per second
-    private float decayAccumulator;   // accumulates fractional decay
+    private float decayRate;
+    private float decayAccumulator;
     private bool isRunning;
 
-    [Header("UI")]
     public TextMeshProUGUI scoreText;
 
-    private void Awake()
+    void Awake()
     {
         if (Instance == null)
             Instance = this;
@@ -29,7 +28,6 @@ public class ScoreManager : MonoBehaviour
         decayAccumulator = 0f;
         isRunning = true;
 
-        // 🔒 Hide score during gameplay
         if (scoreText != null)
             scoreText.gameObject.SetActive(false);
     }
@@ -43,11 +41,9 @@ public class ScoreManager : MonoBehaviour
 
         if (decayAccumulator >= 1f)
         {
-            int pointsToReduce = Mathf.FloorToInt(decayAccumulator);
-            decayAccumulator -= pointsToReduce;
-
-            currentScore -= pointsToReduce;
-            currentScore = Mathf.Max(currentScore, 0);
+            int reduce = Mathf.FloorToInt(decayAccumulator);
+            decayAccumulator -= reduce;
+            currentScore = Mathf.Max(currentScore - reduce, 0);
         }
     }
 
@@ -56,7 +52,6 @@ public class ScoreManager : MonoBehaviour
         isRunning = false;
     }
 
-    // ✅ Called on level completion
     public void ShowScore()
     {
         if (scoreText != null)
